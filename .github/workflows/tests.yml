@@ -1,25 +1,111 @@
-
-name: Python Tests
+name: Business AI CI
 
 on:
   push:
+    branches: [main]
+
   pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
-  test:
+
+  # JOB 1: Python and order workflow tests
+  python-tests:
+
+    name: Python Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      SECRET_KEY: ci-only-secret-key
+      OPENAI_API_KEY: sk-test-not-a-real-key
 
     steps:
+
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements.txt
 
-      - name: Install pytest
-        run: python -m pip install pytest
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
 
-      - name: Run calculator tests
-        run: python -m pytest -v pytest-practice/
+      - name: Run Python and order workflow tests
+        run: |
+          python -m pytest -v \
+            pytest-practice \
+            restaurant_automated_tests/tests/test_order_workflow.py
+
+
+  # JOB 2: Playwright browser tests
+  playwright-tests:
+
+    name: Playwright Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      SECRET_KEY: ci-only-secret-key
+      OPENAI_API_KEY: sk-test-not-a-real-key
+      STAFF_USERNAME: playwright-staff
+
+    steps:
+
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Generate test staff password hash
+        run: |
+          python -c 'from werkzeug.security import generate_password_hash; print("STAFF_PASSWORD_HASH=" + generate_password_hash("TestPassword123!"))' >> "$GITHUB_ENV"
+
+      - name: Install Chromium and system dependencies
+        run: |
+          python -m playwright install --with-deps chromium
+
+      - name: Start Flask application
+        run: |
+          python -m flask --app app run \
+            --host 127.0.0.1 \
+            --port 5000 \
+            --no-reload > flask.log 2>&1 &
+
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:5000/ > /dev/null; then
+              echo "Flask application is ready."
+              exit 0
+            fi
+
+            sleep 1
+          done
+
+          echo "Flask application failed to start."
+          cat flask.log
+          exit 1
+
+      - name: Run Playwright tests
+        run: |
+          python -m pytest -v \
+            restaurant_automated_tests/tests/test_playwright_customer.py \
+            --browser chromium
