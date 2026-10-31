@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    <title>The Sample Grill | Staff Dashboard Demo</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 30px;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        .demo-banner {
+            margin: 0 0 20px;
+            padding: 12px 14px;
+            background: #fff3cd;
+            color: #664d03;
+            border: 1px solid #e0ba55;
+            border-radius: 6px;
+            line-height: 1.45;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+
+
+
+        /* New customer order notification. */
+        .new-order-alert {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 14px 16px;
+            background-color: #fff3cd;
+            color: #664d03;
+            border: 1px solid #e0ba55;
+            border-radius: 6px;
+        }
+
+        .new-order-alert[hidden] {
+            display: none;
+        }
+
+        .new-order-alert span {
+            overflow-wrap: anywhere;
+        }
+
+        .new-order-alert button {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 600px) {
+            .new-order-alert {
+                align-items: flex-start;
+                flex-wrap: wrap;
+            }
+        }
+
+        select,
+        button {
+            padding: 10px 14px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        button {
+            cursor: pointer;
+            background: #222;
+            color: white;
+            border: none;
+        }
+
+
+
+
+        /* Improve spacing and readability of order action buttons. */
+        .order-actions {
+            white-space: nowrap;
+        }
+
+        .order-actions button {
+            white-space: nowrap;
+        }
+
+        .order-actions button+button {
+            margin-left: 12px;
+        }
+
+        button:hover {
+            background: #444;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 14px 12px;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f8f8f8;
+        }
+
+        td {
+            overflow-wrap: anywhere;
+        }
+
+        /* Keep monetary totals intact; the table container can scroll horizontally. */
+        #orders-table-element th:nth-child(3),
+        #orders-table-element td:nth-child(3) {
+            white-space: nowrap;
+            min-width: 96px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 5px;
+            background: #eee;
+            font-size: 13px;
+        }
+
+
+        /* Keep order and handoff statuses on a single line. */
+        #orders-table td:nth-child(4),
+        #handoff-requests td:nth-child(3) {
+            white-space: nowrap;
+        }
+
+
+        .order-awaiting-review td {
+            background-color: #fff3cd;
+        }
+
+        /* Currency values should not split across lines in a narrow table. */
+        #orders-table-element th:nth-child(3),
+        #orders-table-element td:nth-child(3) {
+            white-space: nowrap;
+            min-width: 82px;
+        }
+
+        #message {
+            margin-bottom: 16px;
+            color: #555;
+        }
+
+        .actions-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: nowrap;
+            min-width: max-content;
+        }
+
+        .actions-container select,
+        .actions-container button {
+            flex-shrink: 0;
+            white-space: nowrap;
+            margin: 0;
+        }
+
+        /* Conversation modal */
+
+        #conversation-dialog {
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: none;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        #conversation-dialog::backdrop {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        #conversation-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .conversation-message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            background: #f1f3f5;
+        }
+
+        .conversation-message strong {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .conversation-message small {
+            display: block;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .conversation-message p {
+            margin: 0;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .staff-message {
+            background: #fef3c7;
+        }
+
+        #close-conversation {
+            margin-top: 12px;
+        }
+
+        /* Staff replies and internal notes */
+
+        .staff-reply-section,
+        .staff-notes-section {
+            border-top: 1px solid #ddd;
+            margin-top: 24px;
+            padding-top: 20px;
+        }
+
+        .staff-reply-section h3,
+        .staff-notes-section h3 {
+            margin-bottom: 12px;
+        }
+
+        #staff-reply,
+        #staff-notes {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            margin: 8px 0 12px;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font: inherit;
+            resize: vertical;
+        }
+
+        #staff-reply:focus,
+        #staff-notes:focus {
+            outline: 2px solid #555;
+            outline-offset: 2px;
+        }
+
+        #staff-reply-message,
+        #staff-notes-message {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        #polling-status {
+            color: #666;
+            font-size: 13px;
+            margin: 8px 0;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 16px;
+            }
+
+            #conversation-dialog {
+                width: auto;
+                max-width: none;
+                margin: 10px;
+                padding: 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <h1>The Sample Grill — Staff Dashboard</h1>
+
+        <p class="demo-banner" role="note">
+            DEMONSTRATION ONLY — orders and messages here are sample data. Do not use this
+            dashboard to accept real customer orders.
+        </p>
+
+        <p class="subtitle">
+            Manage customer requests for human assistance.
+        </p>
+
+
+        <!-- CUSTOMER ORDERS -->
+
+        <section aria-labelledby="orders-heading">
+
+            <h2 id="orders-heading">Customer Orders</h2>
+
+            <p>
+                Review customer orders and their current status.
+            </p>
+
+            <div class="toolbar">
+
+                <label for="order-status-filter">
+                    Filter orders:
+                </label>
+
+                <select id="order-status-filter">
+                    <option value="pending_review" selected>Awaiting staff review</option>
+                    <option value="draft">Draft</option>
+                    <option value="confirmed">Accepted</option>
+                    <option value="rejected">Declined</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="">All orders</option>
+                </select>
+
+                <button id="refresh-orders-button" type="button">
+                    Refresh orders
+                </button>
+
+            </div>
+
+            <p id="orders-message" role="status" aria-live="polite">
+                Loading orders...
+            </p>
+
+            <div id="new-order-alert" class="new-order-alert" role="alert" aria-live="assertive" hidden>
+
+                <span id="new-order-alert-text"></span>
+
+                <button id="dismiss-new-order-alert" type="button">
+                    Dismiss
+                </button>
+
+            </div>
+
+            <div class="table-container">
+
+                <table id="orders-table-element">
+
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Last Updated</th>
+                            <th>Conversation ID</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="orders-table"></tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+        <hr>
+
+        <h2>Human Assistance Requests</h2>
+
+        <div class="toolbar">
+
+            <select id="status-filter" aria-label="Filter requests by status">
+                <option value="">All requests</option>
+                <option value="pending">Pending</option>
+                <option value="in_progress">In progress</option>
+                <option value="resolved">Resolved</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+
+            <button id="refresh-button" type="button">
+                Refresh requests
+            </button>
+
+            <form method="POST" action="/staff/logout">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <button type="submit">Log out</button>
+            </form>
+
+        </div>
+
+        <p id="message" role="status" aria-live="polite">
+            Loading requests...
+        </p>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Customer request</th>
+                        <th>Status</th>
+                        <th>Conversation ID</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody id="handoff-requests"></tbody>
+            </table>
+        </div>
+
+        <!-- Conversation modal -->
+
+        <dialog id="conversation-dialog">
+
+            <h2 id="conversation-title">Customer conversation</h2>
+
+            <p id="conversation-meta"></p>
+
+            <p id="polling-status" role="status" aria-live="polite">
+                Updates are checked automatically while this conversation is open.
+            </p>
+
+            <div id="conversation-messages"></div>
+
+            <p id="conversation-message" role="status" aria-live="polite"></p>
+
+            <!-- Reply to customer -->
+
+            <section class="staff-reply-section">
+
+                <h3>Reply to Customer</h3>
+
+                <label for="staff-reply">Your message</label>
+
+                <textarea id="staff-reply" rows="4" maxlength="5000"
+                    placeholder="Type your reply to the customer..."></textarea>
+
+                <button type="button" id="send-staff-reply-button">
+                    Send reply
+                </button>
+
+                <p id="staff-reply-message" role="status" aria-live="polite"></p>
+
+            </section>
+
+            <!-- Private internal notes -->
+
+            <section class="staff-notes-section">
+
+                <h3>Internal Staff Notes</h3>
+
+                <label for="staff-notes">
+                    Notes (visible to staff only)
+                </label>
+
+                <textarea id="staff-notes" rows="5" maxlength="5000"
+                    placeholder="Record what happened and any action taken..."></textarea>
+
+                <button type="button" id="save-notes-button">
+                    Save notes
+                </button>
+
+                <p id="staff-notes-message" role="status" aria-live="polite"></p>
+
+            </section>
+
+            <button type="button" id="close-conversation">
+                Close conversation
+            </button>
+
+        </dialog>
+
+    </div>
+
+    <script>
+        // Prices returned by Flask are integer pence (for example, 650 = £6.50).
+        function formatPrice(pence) {
+            const value = Number(pence);
+            if (!Number.isFinite(value)) return "Price unavailable";
+            const pounds = Math.floor(value / 100);
+            const pennies = Math.abs(value % 100);
+            return `£${pounds.toLocaleString("en-GB")}.${String(pennies).padStart(2, "0")}`;
+        }
+
+        // --------------------------------------------------
+        // HTML ELEMENTS
+        // --------------------------------------------------
+
+        const requestsTable = document.getElementById("handoff-requests");
+        const statusFilter = document.getElementById("status-filter");
+        const message = document.getElementById("message");
+        const refreshButton = document.getElementById("refresh-button");
+
+
+
+        // Customer orders dashboard elements.
+
+        const ordersTable = document.getElementById("orders-table");
+
+        const orderStatusFilter = document.getElementById(
+            "order-status-filter"
+        );
+
+        const ordersMessage = document.getElementById("orders-message");
+
+        const refreshOrdersButton = document.getElementById(
+            "refresh-orders-button"
+        );
+
+        let ordersRefreshInProgress = false;
+
+        const newOrderAlert = document.getElementById("new-order-alert");
+
+        const newOrderAlertText = document.getElementById(
+            "new-order-alert-text"
+        );
+
+        const dismissNewOrderAlertButton = document.getElementById(
+            "dismiss-new-order-alert"
+        );
+
+        // Track order IDs already observed during this page session.
+        let knownPendingReviewOrderIds = null;
+
+        // Prevent overlapping notification checks.
+        let orderNotificationCheckInProgress = false;
+
+        // Remember whether staff dismissed the current alert.
+        let orderAlertDismissed = false;
+
+        const conversationDialog = document.getElementById(
+            "conversation-dialog"
+        );
+
+        const conversationTitle = document.getElementById(
+            "conversation-title"
+        );
+
+        const conversationMeta = document.getElementById(
+            "conversation-meta"
+        );
+
+        const conversationMessages = document.getElementById(
+            "conversation-messages"
+        );
+
+        const conversationMessage = document.getElementById(
+            "conversation-message"
+        );
+
+        const pollingStatus = document.getElementById("polling-status");
+
+        const closeConversationButton = document.getElementById(
+            "close-conversation"
+        );
+
+        const staffNotesInput = document.getElementById("staff-notes");
+        const saveNotesButton = document.getElementById("save-notes-button");
+        const staffNotesMessage = document.getElementById("staff-notes-message");
+
+        const staffReplyInput = document.getElementById("staff-reply");
+
+        const sendStaffReplyButton = document.getElementById(
+            "send-staff-reply-button"
+        );
+
+        const staffReplyMessage = document.getElementById(
+            "staff-reply-message"
+        );
+
+        const csrfToken = document.querySelector(
+            'meta[name="csrf-token"]'
+        ).content;
+
+
+        // --------------------------------------------------
+        // CONVERSATION POLLING STATE
+        // --------------------------------------------------
+
+        let currentHandoffRequestId = null;
+        let handoffListRefreshInProgress = false;
+
+        let currentConversationLastMessageId = 0;
+
+        let displayedConversationMessageIds = new Set();
+
+        let conversationPollingTimer = null;
+
+        let conversationPollingInProgress = false;
+
+        let conversationViewGeneration = 0;
+
+        const CONVERSATION_POLLING_INTERVAL = 3000;
+
+
+        // --------------------------------------------------
+        // STATUS OPTIONS
+        // --------------------------------------------------
+
+        const allowedStatuses = [
+            "pending",
+            "in_progress",
+            "resolved",
+            "cancelled"
+        ];
+
+        const statusLabels = {
+            pending: "Pending",
+            in_progress: "In progress",
+            resolved: "Resolved",
+            cancelled: "Cancelled"
+        };
+
+
+        // --------------------------------------------------
+        // GENERAL HELPERS
+        // --------------------------------------------------
+
+        function addCell(row, value) {
+            const cell = document.createElement("td");
+
+            cell.textContent = value ?? "—";
+
+            row.appendChild(cell);
+        }
+
+
+        function getMessageRoleLabel(role) {
+            if (role === "user") {
+                return "Customer";
+            }
+
+            if (role === "staff") {
+                return "Staff";
+            }
+
+            return "AI Assistant";
+        }
+
+
+        function appendConversationMessage(item) {
+            const messageId = Number(item.id);
+
+            // Avoid displaying the same database message twice.
+            if (Number.isFinite(messageId) && messageId > 0) {
+                if (displayedConversationMessageIds.has(messageId)) {
+                    return;
+                }
+
+                displayedConversationMessageIds.add(messageId);
+
+                currentConversationLastMessageId = Math.max(
+                    currentConversationLastMessageId,
+                    messageId
+                );
+            }
+
+            const messageCard = document.createElement("div");
+
+            messageCard.className = "conversation-message";
+
+            if (item.role === "staff") {
+                messageCard.classList.add("staff-message");
+            }
+
+            const role = document.createElement("strong");
+
+            role.textContent = getMessageRoleLabel(item.role);
+
+            const timestamp = document.createElement("small");
+
+            timestamp.textContent = formatMessageTime(item.created_at);
+            const messageBody = document.createElement("p");
+
+            messageBody.textContent = item.message ?? "";
+
+            messageCard.appendChild(role);
+            messageCard.appendChild(timestamp);
+            messageCard.appendChild(messageBody);
+
+            conversationMessages.appendChild(messageCard);
+
+            conversationMessages.scrollTop =
+                conversationMessages.scrollHeight;
+        }
+
+
+        // --------------------------------------------------
+        // LOAD HANDOFF REQUESTS
+        // --------------------------------------------------
+
+        async function loadRequests(silent = false) {
+            if (handoffListRefreshInProgress) {
+                return;
+            }
+
+            handoffListRefreshInProgress = true;
+
+            if (!silent) {
+                message.textContent = "Loading requests...";
+            }
+
+            try {
+                const status = statusFilter.value;
+
+                let url = "/api/staff/handoffs";
+
+                if (status) {
+                    url += "?status=" + encodeURIComponent(status);
+                }
+
+                const response = await fetch(url, {
+                    cache: "no-store"
+                });
+
+                if (response.status === 401) {
+                    window.location.href = "/staff/login";
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.error || "Failed to retrieve requests."
+                    );
+                }
+
+                requestsTable.replaceChildren();
+
+                for (const handoff of data.requests) {
+                    const row = document.createElement("tr");
+
+                    addCell(row, handoff.id);
+                    addCell(row, handoff.reason);
+
+                    addCell(
+                        row,
+                        statusLabels[handoff.status] || handoff.status
+                    );
+
+                    addCell(row, handoff.conversation_id);
+                    addCell(row, handoff.created_at);
+
+                    row.appendChild(createActionsCell(handoff));
+
+                    requestsTable.appendChild(row);
+                }
+
+                if (!silent) {
+                    if (data.requests.length === 0) {
+                        message.textContent = "No requests found.";
+                    } else {
+                        message.textContent =
+                            data.requests.length + " request(s) found.";
+                    }
+                }
+
+            } catch (error) {
+                console.error(error);
+
+                if (!silent) {
+                    message.textContent =
+                        "Couldn't load requests. Please try again.";
+                }
+            } finally {
+                handoffListRefreshInProgress = false;
+            }
+        }
+
+
+
+
+
+        // --------------------------------------------------
+        // LOAD CUSTOMER ORDERS
+        // --------------------------------------------------
+
+        async function submitOrderDecision(order, decision, button) {
+            button.disabled = true;
+            const actionLabel = decision === "accept" ? "Accepting" : "Declining";
+            ordersMessage.textContent = `${actionLabel} order request #${order.id}...`;
+
+            try {
+                const response = await fetch(
+                    `/api/staff/orders/${order.id}/decision`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRF-Token": csrfToken
+                        },
+                        body: JSON.stringify({ decision })
+                    }
+                );
+
+                if (response.status === 401) {
+                    window.location.href = "/staff/login";
+                    return;
+                }
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || `Couldn't ${decision} the order request.`);
+                }
+
+                await loadOrders(true);
+                ordersMessage.textContent = decision === "accept"
+                    ? `Order #${order.id} has been accepted by the restaurant.`
+                    : `Order request #${order.id} has been declined.`;
+            } catch (error) {
+                console.error("Failed to update order decision:", error);
+                ordersMessage.textContent = error.message || "Couldn't update the order request.";
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        async function loadOrders(silent = false) {
+
+            if (ordersRefreshInProgress) {
+                return;
+            }
+
+            ordersRefreshInProgress = true;
+
+            if (!silent) {
+                ordersMessage.textContent = "Loading orders...";
+            }
+
+            try {
+
+                const status = orderStatusFilter.value;
+
+                const url =
+                    "/api/staff/orders?status=" +
+                    encodeURIComponent(status);
+
+                const response = await fetch(url, {
+                    cache: "no-store"
+                });
+
+                if (response.status === 401) {
+                    window.location.href = "/staff/login";
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.error || "Failed to retrieve orders."
+                    );
+                }
+
+                ordersTable.replaceChildren();
+
+                for (const order of data.orders) {
+
+                    const row = document.createElement("tr");
+
+                    // Order ID
+                    addCell(row, order.id);
+
+                    // Item names, quantities and subtotals
+                    const itemsCell = document.createElement("td");
+
+                    if (order.items.length === 0) {
+
+                        itemsCell.textContent = "No items";
+
+                    } else {
+
+                        itemsCell.textContent = order.items
+                            .map(item =>
+                                `${item.quantity} x ${item.item_name}` +
+                                ` — ${formatPrice(item.subtotal)}`
+                            )
+                            .join("\n");
+
+                    }
+
+                    itemsCell.style.whiteSpace = "pre-line";
+
+                    row.appendChild(itemsCell);
+
+                    // Total and status.
+                    addCell(row, formatPrice(order.total));
+
+                    const statusLabels = {
+                        draft: "Draft",
+                        pending_review: "Awaiting staff review",
+                        confirmed: "Confirmed by restaurant",
+                        rejected: "Declined by restaurant",
+                        cancelled: "Cancelled"
+                    };
+                    addCell(row, statusLabels[order.status] || order.status);
+
+                    if (order.status === "pending_review") {
+                        row.classList.add("order-awaiting-review");
+                    }
+
+                    // Timestamps displayed in UK local time.
+                    addCell(row, formatLocalDateTime(order.created_at));
+                    addCell(row, formatLocalDateTime(order.updated_at));
+
+                    // Customer conversation reference.
+                    addCell(row, order.conversation_id);
+
+                    // Order actions are explicit: only staff can accept or decline.
+                    const actionsCell = document.createElement("td");
+                    actionsCell.classList.add("order-actions");
+
+                    if (order.status === "pending_review") {
+                        const acceptButton = document.createElement("button");
+                        acceptButton.type = "button";
+                        acceptButton.textContent = "Accept order";
+                        acceptButton.addEventListener("click", async () => {
+                            await submitOrderDecision(order, "accept", acceptButton);
+                        });
+                        actionsCell.appendChild(acceptButton);
+
+                        const declineButton = document.createElement("button");
+                        declineButton.type = "button";
+                        declineButton.textContent = "Decline order";
+                        declineButton.addEventListener("click", async () => {
+                            const shouldDecline = window.confirm(
+                                `Are you sure you want to decline order request #${order.id}?`
+                            );
+                            if (shouldDecline) {
+                                await submitOrderDecision(order, "reject", declineButton);
+                            }
+                        });
+                        actionsCell.appendChild(declineButton);
+                    } else if (order.status === "confirmed") {
+                        const cancelButton = document.createElement("button");
+                        cancelButton.type = "button";
+                        cancelButton.textContent = "Cancel order";
+
+                        cancelButton.addEventListener("click", async () => {
+                            const shouldCancel = window.confirm(
+                                `Are you sure you want to cancel accepted order #${order.id}?`
+                            );
+                            if (!shouldCancel) {
+                                return;
+                            }
+
+                            cancelButton.disabled = true;
+                            ordersMessage.textContent = `Cancelling order #${order.id}...`;
+                            try {
+                                const response = await fetch(
+                                    `/api/staff/orders/${order.id}`,
+                                    {
+                                        method: "PATCH",
+                                        headers: { "X-CSRF-Token": csrfToken }
+                                    }
+                                );
+                                if (response.status === 401) {
+                                    window.location.href = "/staff/login";
+                                    return;
+                                }
+                                const data = await response.json();
+                                if (!response.ok) {
+                                    throw new Error(data.error || "Failed to cancel the order.");
+                                }
+                                await loadOrders(true);
+                                ordersMessage.textContent = `Order #${order.id} has been cancelled.`;
+                            } catch (error) {
+                                console.error("Failed to cancel order:", error);
+                                ordersMessage.textContent = error.message || "Couldn't cancel the order.";
+                            } finally {
+                                cancelButton.disabled = false;
+                            }
+                        });
+                        actionsCell.appendChild(cancelButton);
+                    } else {
+                        actionsCell.textContent = "—";
+                    }
+
+                    row.appendChild(actionsCell);
+
+                    ordersTable.appendChild(row);
+
+                }
+
+                if (!silent) {
+
+                    if (data.orders.length === 0) {
+
+                        ordersMessage.textContent = "No orders found.";
+
+                    } else {
+
+                        ordersMessage.textContent =
+                            `${data.orders.length} order(s) found.`;
+
+                    }
+
+                }
+
+            } catch (error) {
+
+                console.error("Failed to load customer orders:", error);
+
+                if (!silent) {
+                    ordersMessage.textContent =
+                        "Couldn't load orders. Please try again.";
+                }
+
+            } finally {
+
+                ordersRefreshInProgress = false;
+
+            }
+
+        }
+
+
+        // Display an order notification.
+        function showOrderAlert(messageText) {
+            newOrderAlertText.textContent = messageText;
+            newOrderAlert.hidden = false;
+            orderAlertDismissed = false;
+        }
+
+
+        // Check for new customer order requests awaiting staff review.
+        async function checkForNewOrders() {
+            if (orderNotificationCheckInProgress) {
+                return;
+            }
+
+            orderNotificationCheckInProgress = true;
+            try {
+                const response = await fetch(
+                    "/api/staff/orders?status=pending_review",
+                    { cache: "no-store" }
+                );
+
+                if (response.status === 401) {
+                    window.location.href = "/staff/login";
+                    return;
+                }
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || "Failed to check for order requests.");
+                }
+
+                const currentOrders = data.orders;
+                const currentIds = new Set(currentOrders.map(order => Number(order.id)));
+
+                if (knownPendingReviewOrderIds === null) {
+                    knownPendingReviewOrderIds = currentIds;
+                    if (currentOrders.length > 0) {
+                        showOrderAlert(
+                            currentOrders.length === 1
+                                ? `Order request #${currentOrders[0].id} is awaiting staff review.`
+                                : `${currentOrders.length} order requests are awaiting staff review.`
+                        );
+                    }
+                    return;
+                }
+
+                const newOrders = currentOrders.filter(
+                    order => !knownPendingReviewOrderIds.has(Number(order.id))
+                );
+                for (const id of currentIds) {
+                    knownPendingReviewOrderIds.add(id);
+                }
+
+                if (newOrders.length > 0) {
+                    const newOrderIds = newOrders.map(order => `#${order.id}`);
+                    showOrderAlert(
+                        newOrderIds.length === 1
+                            ? `New order request received: ${newOrderIds[0]}. Please review it.`
+                            : `New order requests received: ${newOrderIds.join(", ")}. Please review them.`
+                    );
+                } else if (currentOrders.length === 0) {
+                    newOrderAlert.hidden = true;
+                    orderAlertDismissed = false;
+                } else if (!orderAlertDismissed) {
+                    showOrderAlert(
+                        currentOrders.length === 1
+                            ? `Order request #${currentOrders[0].id} is awaiting staff review.`
+                            : `${currentOrders.length} order requests are awaiting staff review.`
+                    );
+                }
+            } catch (error) {
+                console.error("Failed to check for customer order requests:", error);
+            } finally {
+                orderNotificationCheckInProgress = false;
+            }
+        }
+
+        // --------------------------------------------------
+        // UPDATE REQUEST STATUS
+        // --------------------------------------------------
+
+        async function updateStatus(requestId, status, button) {
+            button.disabled = true;
+            message.textContent = "Updating request...";
+
+            try {
+                const response = await fetch(
+                    `/api/staff/handoffs/${requestId}`,
+                    {
+                        method: "PATCH",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRF-Token": csrfToken
+                        },
+                        body: JSON.stringify({
+                            status: status
+                        })
+                    }
+                );
+
+                if (response.status === 401) {
+                    window.location.href = "/staff/login";
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.error || "Failed to update request."
+                    );
+                }
+
+                await loadRequests();
+
+                message.textContent =
+                    `Request #${requestId} updated to ` +
+                    `${statusLabels[status]}.`;
+
+            } catch (error) {
+                console.error(error);
+
+                message.textContent =
+                    error.message || "Couldn't update the request.";
+
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+
+        // --------------------------------------------------
+        // STOP CONVERSATION POLLING
+        // --------------------------------------------------
+
+        function stopConversationPolling() {
+            if (conversationPollingTimer !== null) {
+                clearInterval(conversationPollingTimer);
+                conversationPollingTimer = null;
+            }
+
+            // Invalidate outstanding responses from the previous view.
+            conversationViewGeneration += 1;
+
+            pollingStatus.textContent =
+                "Automatic updates are paused.";
+        }
+
+
+        // --------------------------------------------------
+        // START CONVERSATION POLLING
+        // --------------------------------------------------
+
+        function startConversationPolling() {
+            if (
+                conversationPollingTimer !== null ||
+                currentHandoffRequestId === null ||
+                !conversationDialog.open
+            ) {
+                return;
+            }
+
+            const generation = conversationViewGeneration;
+
+            pollingStatus.textContent =
+                "Connected: checking for new messages every 3 seconds.";
+
+            // Check immediately, then continue every three seconds.
+            pollConversationMessages(generation);
+
+            conversationPollingTimer = setInterval(() => {
+                pollConversationMessages(generation);
+            }, CONVERSATION_POLLING_INTERVAL);
+        }
+
+
+        // --------------------------------------------------
+        // RETRIEVE NEW MESSAGES FOR THE OPEN CONVERSATION
+        // --------------------------------------------------
+
+        async function pollConversationMessages(generation) {
+            if (
+                conversationPollingInProgress ||
+                generation !== conversationViewGeneration ||
+                currentHandoffRequestId === null ||
+                !conversationDialog.open
+            ) {
+                return;
+            }
+
+            const requestId = currentHandoffRequestId;
+
+            const afterId = currentConversationLastMessageId;
+
+            conversationPollingInProgress = true;
+
+            try {
+                const response = await fetch(
+                    `/api/staff/handoffs/${requestId}/messages/new` +
+                    `?after_id=${encodeURIComponent(afterId)}`,
+                    {
+                        method: "GET",
+                        cache: "no-store"
+                    }
+                );
+
+                if (response.status === 401) {
+                    window.location.href = "/staff/login";
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.error || "Couldn't retrieve new messages."
+                    );
+                }
+
+                // Ignore results if staff have changed conversations.
+                if (
+                    generation !== conversationViewGeneration ||
+                    !conversationDialog.open ||
+                    currentHandoffRequestId !== requestId
+                ) {
+                    return;
+                }
+
+                // Add messages in database order.
+                for (const item of data.messages) {
+                    appendConversationMessage(item);
+                }
+
+                conversationMessage.textContent =
+                    `${displayedConversationMessageIds.size} message(s) loaded.`;
+
+                pollingStatus.textContent =
+                    "Connected: checking for new messages every 3 seconds.";
+
+            } catch (error) {
+                console.error(
+                    "Staff conversation polling failed:",
+                    error
+                );
+
+                pollingStatus.textContent =
+                    "Couldn't check for new messages. Retrying automatically.";
+
+            } finally {
+                conversationPollingInProgress = false;
+            }
+        }
+
+
+        // --------------------------------------------------
+        // OPEN A CUSTOMER CONVERSATION
+        // --------------------------------------------------
+
+        async function viewConversation(requestId) {
+            stopConversationPolling();
+
+            currentHandoffRequestId = requestId;
+
+            currentConversationLastMessageId = 0;
+
+            displayedConversationMessageIds = new Set();
+
+            const generation = conversationViewGeneration;
+
+            conversationTitle.textContent =
+                `Conversation for request #${requestId}`;
+
+            conversationMeta.textContent = "";
+
+            conversationMessages.replaceChildren();
+
+            conversationMessage.textContent = "Loading conversation...";
+
+            staffNotesInput.value = "";
+            staffNotesMessage.textContent = "";
+            saveNotesButton.disabled = true;
+
+            staffReplyInput.value = "";
+            staffReplyMessage.textContent = "";
+            sendStaffReplyButton.disabled = true;
+
+            conversationDialog.showModal();
+
+            try {
+                const response = await fetch(
+                    `/api/staff/handoffs/${requestId}/conversation`,
+                    {
+                        cache: "no-store"
+                    }
+                );
+
+                if (response.status === 401) {
+                    window.location.href = "/staff/login";
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.error || "Failed to load conversation."
+                    );
+                }
+
+                // Ignore a response from an outdated conversation view.
+                if (
+                    generation !== conversationViewGeneration ||
+                    currentHandoffRequestId !== requestId ||
+                    !conversationDialog.open
+                ) {
+                    return;
+                }
+
+                conversationMeta.textContent =
+                    `Conversation ID: ${data.conversation_id}`;
+
+                staffNotesInput.value = data.staff_notes ?? "";
+
+                conversationMessages.replaceChildren();
+
+                // Reset the cursor before loading initial messages.
+                currentConversationLastMessageId = 0;
+
+                displayedConversationMessageIds = new Set();
+
+                if (data.messages.length === 0) {
+                    conversationMessage.textContent =
+                        "No messages have been recorded yet.";
+                } else {
+                    for (const item of data.messages) {
+                        appendConversationMessage(item);
+                    }
+
+                    conversationMessage.textContent =
+                        `${data.messages.length} message(s) loaded.`;
+                }
+
+                saveNotesButton.disabled = false;
+                sendStaffReplyButton.disabled = false;
+
+                // Automatically begin staff-side polling.
+                startConversationPolling();
+
+            } catch (error) {
+                console.error(error);
+
+                conversationMessage.textContent =
+                    error.message || "Couldn't load the conversation.";
+            }
+        }
+
+
+        // --------------------------------------------------
+        // SEND STAFF REPLY
+        // --------------------------------------------------
+
+        async function sendStaffReply() {
+            const requestId = currentHandoffRequestId;
+
+            const reply = staffReplyInput.value.trim();
+
+            if (requestId === null) {
+                staffReplyMessage.textContent =
+                    "No conversation is currently selected.";
+                return;
+            }
+
+            if (!reply) {
+                staffReplyMessage.textContent =
+                    "Please enter a reply before sending.";
+                return;
+            }
+
+            sendStaffReplyButton.disabled = true;
+
+            staffReplyMessage.textContent = "Sending reply...";
+
+            try {
+                const response = await fetch(
+                    `/api/staff/handoffs/${requestId}/reply`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRF-Token": csrfToken
+                        },
+                        body: JSON.stringify({
+                            message: reply
+                        })
+                    }
+                );
+
+                if (response.status === 401) {
+                    window.location.href = "/staff/login";
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.error || "Failed to send the reply."
+                    );
+                }
+
+                staffReplyInput.value = "";
+
+                staffReplyMessage.textContent =
+                    "Reply sent. Updating conversation...";
+
+                // Retrieve the saved reply and any other unseen messages.
+                await pollConversationMessages(
+                    conversationViewGeneration
+                );
+
+            } catch (error) {
+                console.error(error);
+
+                staffReplyMessage.textContent =
+                    error.message || "Couldn't send the reply.";
+
+            } finally {
+                sendStaffReplyButton.disabled = false;
+            }
+        }
+
+
+        // --------------------------------------------------
+        // SAVE INTERNAL STAFF NOTES
+        // --------------------------------------------------
+
+        async function saveStaffNotes() {
+            if (currentHandoffRequestId === null) {
+                return;
+            }
+
+            saveNotesButton.disabled = true;
+
+            staffNotesMessage.textContent = "Saving notes...";
+
+            try {
+                const response = await fetch(
+                    `/api/staff/handoffs/${currentHandoffRequestId}/notes`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRF-Token": csrfToken
+                        },
+                        body: JSON.stringify({
+                            staff_notes: staffNotesInput.value
+                        })
+                    }
+                );
+
+                if (response.status === 401) {
+                    window.location.href = "/staff/login";
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.error || "Failed to save notes."
+                    );
+                }
+
+                staffNotesInput.value = data.staff_notes;
+
+                staffNotesMessage.textContent =
+                    "Notes saved successfully.";
+
+            } catch (error) {
+                console.error(error);
+
+                staffNotesMessage.textContent =
+                    error.message || "Couldn't save notes.";
+
+            } finally {
+                saveNotesButton.disabled = false;
+            }
+        }
+
+
+        // --------------------------------------------------
+        // CREATE REQUEST ACTIONS
+        // --------------------------------------------------
+
+        function createActionsCell(handoff) {
+            const cell = document.createElement("td");
+
+            const controls = document.createElement("div");
+
+            controls.className = "actions-container";
+
+            const select = document.createElement("select");
+
+            select.setAttribute(
+                "aria-label",
+                `New status for request ${handoff.id}`
+            );
+
+            for (const status of allowedStatuses) {
+                const option = document.createElement("option");
+
+                option.value = status;
+                option.textContent = statusLabels[status];
+
+                if (status === handoff.status) {
+                    option.selected = true;
+                }
+
+                select.appendChild(option);
+            }
+
+            const updateButton = document.createElement("button");
+
+            updateButton.type = "button";
+            updateButton.textContent = "Update";
+
+            updateButton.addEventListener("click", () => {
+                updateStatus(
+                    handoff.id,
+                    select.value,
+                    updateButton
+                );
+            });
+
+            const viewButton = document.createElement("button");
+
+            viewButton.type = "button";
+            viewButton.textContent = "View conversation";
+
+            viewButton.addEventListener("click", () => {
+                viewConversation(handoff.id);
+            });
+
+            controls.appendChild(select);
+            controls.appendChild(updateButton);
+            controls.appendChild(viewButton);
+
+            cell.appendChild(controls);
+
+            return cell;
+        }
+
+
+        // --------------------------------------------------
+        // EVENT LISTENERS
+        // --------------------------------------------------
+
+
+
+        orderStatusFilter.addEventListener(
+            "change",
+            () => loadOrders()
+        );
+
+        refreshOrdersButton.addEventListener(
+            "click",
+            () => loadOrders()
+        );
+
+        dismissNewOrderAlertButton.addEventListener("click", () => {
+            newOrderAlert.hidden = true;
+            orderAlertDismissed = true;
+        });
+
+
+
+
+        statusFilter.addEventListener("change", () => loadRequests());
+
+        refreshButton.addEventListener("click", () => loadRequests());
+
+        closeConversationButton.addEventListener("click", () => {
+            conversationDialog.close();
+        });
+
+        conversationDialog.addEventListener("close", () => {
+            stopConversationPolling();
+
+            currentHandoffRequestId = null;
+
+            currentConversationLastMessageId = 0;
+
+            displayedConversationMessageIds = new Set();
+        });
+
+        saveNotesButton.addEventListener(
+            "click",
+            saveStaffNotes
+        );
+
+        sendStaffReplyButton.addEventListener(
+            "click",
+            sendStaffReply
+        );
+
+
+        // --------------------------------------------------
+        // INITIALISE DASHBOARD
+        // --------------------------------------------------
+
+        // Convert timestamps to local time for display in the conversation view.
+
+        // Format database timestamps as UK local date and time.
+        function formatLocalDateTime(timestamp) {
+            if (!timestamp) {
+                return "—";
+            }
+
+            // SQLite CURRENT_TIMESTAMP stores timestamps in UTC.
+            // Identify UTC timestamps before converting them.
+            let normalizedTimestamp = timestamp.includes("T")
+                ? timestamp
+                : timestamp.replace(" ", "T");
+
+            // Add the UTC marker if the timestamp has no timezone.
+            if (!/(Z|[+-]\d{2}:\d{2})$/.test(normalizedTimestamp)) {
+                normalizedTimestamp += "Z";
+            }
+
+            const date = new Date(normalizedTimestamp);
+
+            if (Number.isNaN(date.getTime())) {
+                return "—";
+            }
+
+            // Convert UTC into UK local time.
+            return new Intl.DateTimeFormat("en-GB", {
+                timeZone: "Europe/London",
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                hourCycle: "h23"
+            }).format(date);
+        }
+
+
+        function formatMessageTime(timestamp) {
+            if (!timestamp) return "";
+
+            // SQLite CURRENT_TIMESTAMP is stored in UTC.
+            const utcTimestamp = timestamp.includes("T")
+                ? `${timestamp.endsWith("Z") ? timestamp : timestamp + "Z"}`
+                : timestamp.replace(" ", "T") + "Z";
+
+            const date = new Date(utcTimestamp);
+
+            if (Number.isNaN(date.getTime())) return "";
+
+            return new Intl.DateTimeFormat("en-GB", {
+                timeZone: "Europe/London",
+                hour: "2-digit",
+                minute: "2-digit",
+                hourCycle: "h23"
+            }).format(date);
+        }
+
+        // Automatically check for new handoff requests every 10 seconds.
+        window.setInterval(() => {
+
+            // Don't refresh while the page is hidden.
+            if (document.hidden) {
+                return;
+            }
+
+            // Don't refresh the list while a conversation is open.
+            if (conversationDialog.open) {
+                return;
+            }
+
+            // Don't interrupt someone interacting with the request table.
+            if (requestsTable.contains(document.activeElement)) {
+                return;
+            }
+
+            // Refresh quietly without changing the status message.
+            loadRequests(true);
+
+        }, 10000);
+
+
+        loadRequests();
+
+        loadOrders();
+
+        checkForNewOrders();
+
+
+
+
+
+        // Check confirmed orders every 10 seconds.
+        window.setInterval(() => {
+
+            // Skip background work while the page is hidden.
+            if (document.hidden) {
+                return;
+            }
+
+            // Check for new orders even while staff are interacting with the table.
+            checkForNewOrders();
+
+            // Don't interrupt someone interacting with the orders table.
+            if (ordersTable.contains(document.activeElement)) {
+                return;
+            }
+
+            // Refresh the displayed order list.
+            loadOrders(true);
+
+        }, 10000);
+
+    </script>
+</body>
+
+</html>

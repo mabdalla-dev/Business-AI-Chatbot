@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>The Sample Grill | AI Assistant Demo</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background: #f4f4f5;
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 900px;
+            min-height: 100vh;
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .demo-banner {
+            padding: 10px 16px;
+            background: #fff4ce;
+            color: #6b4f00;
+            border-bottom: 1px solid #e9d28a;
+            font-size: 12px;
+            line-height: 1.45;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Header */
+
+        .header {
+            background: #111827;
+            color: white;
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .restaurant-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #f59e0b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .header-text h1 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .header-text p {
+            margin: 3px 0 0;
+            font-size: 13px;
+            color: #d1d5db;
+        }
+
+        /* Chat area */
+
+        .chat {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            display: flex;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.assistant,
+        .message.staff {
+            justify-content: flex-start;
+        }
+
+        .bubble {
+            max-width: 80%;
+            padding: 12px 15px;
+            border-radius: 18px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            font-size: 15px;
+        }
+
+
+        .message-time {
+            display: block;
+            margin-top: 6px;
+            font-size: 11px;
+            line-height: 1.2;
+            opacity: 0.75;
+            text-align: right;
+        }
+
+
+
+
+
+
+
+        .message.user .bubble {
+            background: #111827;
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant .bubble {
+            background: #f3f4f6;
+            color: #111827;
+            border-bottom-left-radius: 5px;
+        }
+
+        /* Human staff replies */
+
+        .message.staff .bubble {
+            background: #fef3c7;
+            color: #78350f;
+            border-bottom-left-radius: 5px;
+        }
+
+        .staff-label {
+            display: block;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        /* Welcome message */
+
+        .welcome {
+            align-self: center;
+            text-align: center;
+            margin: 10px 0 8px;
+            max-width: 500px;
+        }
+
+        .welcome h2 {
+            margin: 0 0 6px;
+            font-size: 22px;
+            color: #111827;
+        }
+
+        .welcome p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Message input area */
+
+        .composer {
+            border-top: 1px solid #e5e7eb;
+            padding: 14px;
+            background: white;
+        }
+
+        .composer-form {
+            display: flex;
+            gap: 10px;
+            max-width: 820px;
+            margin: 0 auto;
+        }
+
+        .message-input {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid #d1d5db;
+            border-radius: 24px;
+            padding: 12px 16px;
+            font-size: 15px;
+            outline: none;
+            background: #f9fafb;
+        }
+
+        .message-input:focus {
+            background: white;
+            border-color: #111827;
+        }
+
+        .send-button {
+            border: none;
+            border-radius: 24px;
+            padding: 0 20px;
+            background: #f59e0b;
+            color: #111827;
+            font-weight: bold;
+            cursor: pointer;
+            min-width: 75px;
+        }
+
+        .send-button:hover {
+            background: #d97706;
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Keyboard accessibility */
+
+        .message-input:focus-visible,
+        .send-button:focus-visible {
+            outline: 3px solid #2563eb;
+            outline-offset: 2px;
+        }
+
+        /* Typing indicator */
+
+        .typing {
+            display: none;
+        }
+
+        .typing .bubble {
+            color: #6b7280;
+            font-style: italic;
+            font-size: 13px;
+            padding: 8px 12px;
+        }
+
+        /* Larger screens */
+
+        @media (width >=700px) {
+            body {
+                padding: 20px;
+            }
+
+            .app {
+                min-height: calc(100vh - 40px);
+                max-height: calc(100vh - 40px);
+                border-radius: 18px;
+                overflow: hidden;
+                box-shadow: 0 10px 35px rgba(0, 0, 0, 0.12);
+            }
+
+            .bubble {
+                max-width: 70%;
+            }
+        }
+
+        /* Respect reduced-motion preferences */
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                scroll-behavior: auto !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="app">
+
+        <div class="demo-banner" role="note">
+            DEMO ONLY — fictional menu and prices. No real orders, restaurant contact details,
+            delivery service or payments are configured.
+        </div>
+
+        <!-- Header -->
+
+        <header class="header">
+
+            <div class="restaurant-icon" aria-hidden="true">
+                🍔
+            </div>
+
+            <div class="header-text">
+                <h1>The Sample Grill Assistant</h1>
+                <p>Restaurant customer support</p>
+            </div>
+
+        </header>
+
+
+        <!-- Conversation area -->
+
+        <section id="chat" class="chat" role="log" aria-label="Chat conversation" aria-live="polite">
+
+            <!-- Welcome message -->
+
+            <div id="welcome" class="welcome">
+
+                <h2>Welcome to The Sample Grill 👋</h2>
+
+                <p>
+                    Ask me about our menu, prices, delivery, opening hours,
+                    or place an order.
+                </p>
+
+            </div>
+
+
+            <!-- Single typing indicator -->
+
+            <div id="typing" class="message assistant typing" aria-hidden="true">
+
+                <div class="bubble">
+                    Typing...
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- Message input -->
+
+        <footer class="composer">
+
+            <form id="composer-form" class="composer-form">
+
+                <label for="message" style="position: absolute; left: -9999px;">
+                    Type your message
+                </label>
+
+                <input id="message" class="message-input" type="text" placeholder="Type your message..."
+                    autocomplete="off">
+
+                <button id="send-button" class="send-button" type="submit">
+                    Send
+                </button>
+
+            </form>
+
+        </footer>
+
+    </main>
+
+
+    <script>
+        // Get references to the HTML elements.
+
+        const form = document.getElementById("composer-form");
+        const input = document.getElementById("message");
+        const chat = document.getElementById("chat");
+        const typing = document.getElementById("typing");
+        const sendButton = document.getElementById("send-button");
+        const welcome = document.getElementById("welcome");
+
+
+        // --------------------------------------------------
+        // POLLING STATE
+        // --------------------------------------------------
+
+        let lastMessageId = 0;
+
+        let handoffActive = false;
+
+        let pollingTimer = null;
+
+        let pollingInProgress = false;
+
+        let isSendingMessage = false;
+
+        const POLLING_INTERVAL = 5000;
+
+
+        // --------------------------------------------------
+        // DISPLAY A MESSAGE
+        // --------------------------------------------------
+
+        function addMessage(text, sender, timestamp = null) {
+
+            if (welcome) {
+                welcome.style.display = "none";
+            }
+
+            // Create the message container.
+            const messageElement = document.createElement("div");
+
+            messageElement.className = `message ${sender}`;
+
+            // Create the message bubble.
+            const bubble = document.createElement("div");
+
+            bubble.className = "bubble";
+
+            // Label real staff replies separately from AI responses.
+            if (sender === "staff") {
+                const label = document.createElement("strong");
+
+                label.className = "staff-label";
+
+                label.textContent = "Restaurant Staff";
+
+                bubble.appendChild(label);
+            }
+
+            // Create the message text.
+            const body = document.createElement("span");
+
+            body.textContent = text;
+
+            bubble.appendChild(body);
+
+            // Add a timestamp when one is available.
+            if (timestamp) {
+                const time = document.createElement("small");
+
+                time.className = "message-time";
+
+                time.textContent = formatMessageTime(timestamp);
+
+                bubble.appendChild(time);
+            }
+
+            // Add the bubble to the message container.
+            messageElement.appendChild(bubble);
+
+            // Add the message to the conversation.
+            chat.appendChild(messageElement);
+
+            // Scroll down to show the latest message.
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        // --------------------------------------------------
+        // START OR STOP POLLING
+        // --------------------------------------------------
+
+        function updatePollingState(active) {
+
+            handoffActive = active === true;
+
+            if (handoffActive && pollingTimer === null) {
+
+                pollingTimer = window.setInterval(
+                    pollForNewMessages,
+                    POLLING_INTERVAL
+                );
+
+                console.log("Staff message polling started.");
+
+            } else if (!handoffActive && pollingTimer !== null) {
+
+                window.clearInterval(pollingTimer);
+
+                pollingTimer = null;
+
+                console.log("Staff message polling stopped.");
+            }
+        }
+
+
+        // --------------------------------------------------
+        // CHECK FOR NEW MESSAGES
+        // --------------------------------------------------
+
+        async function pollForNewMessages() {
+
+            if (
+                !handoffActive ||
+                pollingInProgress ||
+                isSendingMessage ||
+                document.hidden
+            ) {
+                return;
+            }
+
+            pollingInProgress = true;
+
+            try {
+                const url =
+                    `/messages/new?after_id=${encodeURIComponent(lastMessageId)}`;
+
+                const response = await fetch(url, {
+                    method: "GET",
+                    cache: "no-store"
+                });
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Message polling failed: HTTP ${response.status}`
+                    );
+                }
+
+                const data = await response.json();
+
+                for (const item of data.messages) {
+
+                    const messageId = Number(item.id);
+
+                    // Ignore invalid or previously received messages.
+                    if (
+                        !Number.isFinite(messageId) ||
+                        messageId <= lastMessageId
+                    ) {
+                        continue;
+                    }
+
+                    addMessage(item.message, item.role, item.created_at);
+                    lastMessageId = messageId;
+                }
+
+                if (data.last_message_id !== undefined) {
+
+                    const returnedId = Number(data.last_message_id);
+
+                    if (Number.isFinite(returnedId)) {
+                        lastMessageId = Math.max(
+                            lastMessageId,
+                            returnedId
+                        );
+                    }
+                }
+
+                // Stop polling when the handoff is resolved or cancelled.
+                if (typeof data.handoff_active === "boolean") {
+                    updatePollingState(data.handoff_active);
+                }
+
+            } catch (error) {
+
+                // A temporary error should not permanently stop polling.
+                console.error(
+                    "Could not retrieve new messages:",
+                    error
+                );
+
+            } finally {
+                pollingInProgress = false;
+            }
+        }
+
+
+        // --------------------------------------------------
+        // SEND CUSTOMER MESSAGE
+        // --------------------------------------------------
+
+        async function sendMessage() {
+
+            const customerMessage = input.value.trim();
+
+            if (customerMessage === "") {
+                return;
+            }
+
+            isSendingMessage = true;
+
+            // Display the customer's message immediately.
+            addMessage(customerMessage, "user");
+
+            input.value = "";
+
+            sendButton.disabled = true;
+
+            input.disabled = true;
+
+            // Show the typing indicator.
+            typing.style.display = "flex";
+
+            typing.setAttribute("aria-hidden", "false");
+
+            chat.appendChild(typing);
+
+            chat.scrollTop = chat.scrollHeight;
+
+            try {
+
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        message: customerMessage
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Chat request failed: HTTP ${response.status}`
+                    );
+                }
+
+                const data = await response.json();
+
+                typing.style.display = "none";
+
+                typing.setAttribute("aria-hidden", "true");
+
+                // During an active handoff, Flask returns an empty reply.
+                // Do not display an empty assistant message bubble.
+                if (data.reply && data.reply.trim() !== "") {
+                    addMessage(data.reply, "assistant");
+                }
+
+                // Reload saved history from SQLite. This also updates the
+                // message ID cursor and starts/stops polling as appropriate.
+                const historyLoaded = await loadHistory();
+
+                if (
+                    !historyLoaded &&
+                    typeof data.handoff_active === "boolean"
+                ) {
+                    updatePollingState(data.handoff_active);
+                }
+
+            } catch (error) {
+
+                typing.style.display = "none";
+
+                typing.setAttribute("aria-hidden", "true");
+
+                addMessage(
+                    "Sorry, something went wrong. Please try again.",
+                    "assistant"
+                );
+
+                console.error("Error sending message:", error);
+
+            } finally {
+
+                isSendingMessage = false;
+
+                sendButton.disabled = false;
+
+                input.disabled = false;
+
+                input.focus();
+            }
+        }
+
+
+        // --------------------------------------------------
+        // LOAD SAVED CONVERSATION HISTORY
+        // --------------------------------------------------
+
+        async function loadHistory() {
+
+            try {
+
+                const response = await fetch("/history", {
+                    method: "GET",
+                    cache: "no-store"
+                });
+
+                if (!response.ok) {
+                    throw new Error(
+                        "Failed to load conversation history."
+                    );
+                }
+
+                const data = await response.json();
+
+                // Remove displayed messages but keep the typing indicator.
+                chat.querySelectorAll(
+                    ".message:not(.typing)"
+                ).forEach(element => element.remove());
+
+                lastMessageId = 0;
+
+                // Show the welcome message only for an empty conversation.
+                if (welcome) {
+                    welcome.style.display =
+                        data.messages.length === 0 ? "" : "none";
+                }
+
+                // Rebuild the chat in database order.
+                for (const item of data.messages) {
+
+                    addMessage(item.message, item.role, item.created_at);
+                    const messageId = Number(item.id);
+
+                    if (
+                        Number.isFinite(messageId) &&
+                        messageId > lastMessageId
+                    ) {
+                        lastMessageId = messageId;
+                    }
+                }
+
+                chat.appendChild(typing);
+
+                chat.scrollTop = chat.scrollHeight;
+
+                // The server tells us whether a staff handoff is active.
+                updatePollingState(data.handoff_active);
+
+                return true;
+
+            } catch (error) {
+
+                console.error(
+                    "Could not load conversation history:",
+                    error
+                );
+
+                return false;
+            }
+        }
+
+
+        // --------------------------------------------------
+        // BROWSER VISIBILITY
+        // --------------------------------------------------
+
+        document.addEventListener("visibilitychange", () => {
+
+            // Check immediately when the customer returns to the chat tab.
+            if (!document.hidden && handoffActive) {
+                pollForNewMessages();
+            }
+        });
+
+
+        // --------------------------------------------------
+        // FORM SUBMISSION
+        // --------------------------------------------------
+
+        form.addEventListener("submit", function (event) {
+
+            event.preventDefault();
+
+            sendMessage();
+        });
+
+
+
+
+
+
+
+
+        // Convert timestamps to local time for display in the conversation view.
+        function formatMessageTime(timestamp) {
+            if (!timestamp) return "";
+
+            // SQLite CURRENT_TIMESTAMP is stored in UTC.
+            const utcTimestamp = timestamp.includes("T")
+                ? `${timestamp.endsWith("Z") ? timestamp : timestamp + "Z"}`
+                : timestamp.replace(" ", "T") + "Z";
+
+            const date = new Date(utcTimestamp);
+
+            if (Number.isNaN(date.getTime())) return "";
+
+            return new Intl.DateTimeFormat("en-GB", {
+                timeZone: "Europe/London",
+                hour: "2-digit",
+                minute: "2-digit",
+                hourCycle: "h23"
+            }).format(date);
+        }
+
+
+        // --------------------------------------------------
+        // INITIALISE THE CHAT
+        // --------------------------------------------------
+
+        loadHistory();
+
+        input.focus();
+
+    </script>
+
+</body>
+
+</html>

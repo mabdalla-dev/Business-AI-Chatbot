@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Test and coverage caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local databases and customer data (do not commit)
+*.db
+*.sqlite
+*.sqlite3
