@@ -18,4 +18,4 @@ Replace every sample field with information provided and approved by the restaur
 
 A pre-existing `restaurant.db` may contain records created with the previous sample configuration. Back it up first and use a fresh, separate demo database for the UK demo rather than mixing old records with the new pence-based prices.
 
-The model default is configured as `gpt-6-luna` using the `OPENAI_MODEL` environment-variable override. This must still be verified with the user's own API credentials before demonstrating live AI responses. The development/test routes in `app.py` also need to be disabled or protected before public deployment.
+The model default is configured as `gpt-6-luna` using the `OPENAI_MODEL` environment-variable override. This must still be verified with the user's own API credentials before demonstrating live AI responses.

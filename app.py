@@ -48,7 +48,15 @@ faqs = {
     "vegetarian": ["vegetarian", "veggie"],
     "phone": ["phone", "number", "call"],
     "delivery": ["delivery", "deliver", "do you deliver"],
-    "payment": ["payment", "pay", "cash", "card", "contactless", "apple pay", "google pay"],
+    "payment": [
+        "payment",
+        "pay",
+        "cash",
+        "card",
+        "contactless",
+        "apple pay",
+        "google pay",
+    ],
 }
 
 
@@ -84,7 +92,6 @@ def format_price(price_in_minor_units):
     return f"{symbol}{major_units:,}.{minor_units:02d}"
 
 
-
 def is_order_status_question(message, conversation=None):
     """Return True when the customer is asking about an existing order's state.
 
@@ -92,9 +99,7 @@ def is_order_status_question(message, conversation=None):
     Accept natural wording such as "what's my order status?", "whats my order
     status", "has it been confirmed?", and "is it on the way?".
     """
-    text = re.sub(
-        r"\s+", " ", str(message or "").lower().replace("’", "'")
-    ).strip()
+    text = re.sub(r"\s+", " ", str(message or "").lower().replace("’", "'")).strip()
 
     mentions_order = bool(
         re.search(r"\b(?:my|the|this|that)?\s*order(?:\s+request)?\b", text)
@@ -128,9 +133,7 @@ def is_order_status_question(message, conversation=None):
     # pronouns such as "it" or "that".
     refers_to_recent_order = recent_context_mentions_order and (
         asks_status_directly
-        or bool(
-            re.search(r"\b(?:it|that|my order|the order|order status)\b", text)
-        )
+        or bool(re.search(r"\b(?:it|that|my order|the order|order status)\b", text))
     )
     asks_about_state = asks_status_directly or known_states or delivery_progress
 
@@ -195,7 +198,9 @@ def get_latest_order_status_reply(conversation_id, customer_message=""):
     if status == "cancelled":
         return "Your most recent order has been cancelled."
 
-    app.logger.warning("Encountered unexpected order status %r for order %s", status, order["id"])
+    app.logger.warning(
+        "Encountered unexpected order status %r for order %s", status, order["id"]
+    )
     return "I couldn't verify your order status right now. Please check with the restaurant team."
 
 
@@ -423,7 +428,9 @@ def process_message(message, order):
 
                 item_total = restaurant["menu"][item] * quantity
 
-                added_items.append(f"{quantity} x {item.title()} - {format_price(item_total)}")
+                added_items.append(
+                    f"{quantity} x {item.title()} - {format_price(item_total)}"
+                )
 
             return "Added to your order:\n" + "\n".join(added_items)
 
@@ -978,7 +985,6 @@ def cancel_staff_order(order_id):
     return jsonify({"success": True, "order_id": order_id, "status": "cancelled"})
 
 
-
 @app.route("/api/staff/orders/<int:order_id>/decision", methods=["POST"])
 @staff_required
 def decide_staff_order(order_id):
@@ -1012,9 +1018,14 @@ def decide_staff_order(order_id):
         return jsonify({"error": "Order not found."}), 404
 
     if order["status"] != "pending_review":
-        return jsonify({
-            "error": "Only requests awaiting staff review can be accepted or declined."
-        }), 409
+        return (
+            jsonify(
+                {
+                    "error": "Only requests awaiting staff review can be accepted or declined."
+                }
+            ),
+            409,
+        )
 
     cursor = db.execute(
         """
@@ -1028,25 +1039,31 @@ def decide_staff_order(order_id):
     db.commit()
 
     if cursor.rowcount != 1:
-        return jsonify({"error": "The order request was already updated. Refresh and try again."}), 409
+        return (
+            jsonify(
+                {
+                    "error": "The order request was already updated. Refresh and try again."
+                }
+            ),
+            409,
+        )
 
-    return jsonify({
-        "success": True,
-        "order_id": order_id,
-        "status": target_status,
-        "decision": decision,
-    })
-
+    return jsonify(
+        {
+            "success": True,
+            "order_id": order_id,
+            "status": target_status,
+            "decision": decision,
+        }
+    )
 
 
 # --------------------------------------------------
 # ACKNOWLEDGE OF CUSTOMER ORDERS BY STAFF
 # --------------------------------------------------
 
-@app.route(
-    "/api/staff/orders/<int:order_id>/acknowledge",
-    methods=["POST"]
-)
+
+@app.route("/api/staff/orders/<int:order_id>/acknowledge", methods=["POST"])
 @staff_required
 def acknowledge_staff_order(order_id):
     # Validate the CSRF token.
@@ -1056,14 +1073,9 @@ def acknowledge_staff_order(order_id):
     if (
         not expected_token
         or not provided_token
-        or not secrets.compare_digest(
-            expected_token,
-            provided_token
-        )
+        or not secrets.compare_digest(expected_token, provided_token)
     ):
-        return jsonify({
-            "error": "Invalid or missing CSRF token."
-        }), 403
+        return jsonify({"error": "Invalid or missing CSRF token."}), 403
 
     db = get_db()
 
@@ -1074,30 +1086,33 @@ def acknowledge_staff_order(order_id):
         FROM orders
         WHERE id = ?
         """,
-        (order_id,)
+        (order_id,),
     ).fetchone()
 
     # Reject requests for orders that do not exist.
     if order is None:
-        return jsonify({
-            "error": "Order not found."
-        }), 404
+        return jsonify({"error": "Order not found."}), 404
 
     # Legacy endpoint: acknowledgement means seen/reviewed, not accepted.
     # The dashboard uses the explicit accept/decline decision endpoint instead.
     if order["status"] != "pending_review":
-        return jsonify({
-            "error": "Only requests awaiting staff review can be acknowledged."
-        }), 409
+        return (
+            jsonify(
+                {"error": "Only requests awaiting staff review can be acknowledged."}
+            ),
+            409,
+        )
 
     # Make repeated acknowledgement requests safe.
     if order["staff_acknowledged_at"] is not None:
-        return jsonify({
-            "success": True,
-            "already_acknowledged": True,
-            "order_id": order_id,
-            "staff_acknowledged_at": order["staff_acknowledged_at"]
-        })
+        return jsonify(
+            {
+                "success": True,
+                "already_acknowledged": True,
+                "order_id": order_id,
+                "staff_acknowledged_at": order["staff_acknowledged_at"],
+            }
+        )
 
     # Record the acknowledgement without overwriting an existing one.
     cursor = db.execute(
@@ -1109,16 +1124,14 @@ def acknowledge_staff_order(order_id):
           AND status = 'pending_review'
           AND staff_acknowledged_at IS NULL
         """,
-        (order_id,)
+        (order_id,),
     )
 
     db.commit()
 
     # Check that the update affected an order.
     if cursor.rowcount == 0:
-        return jsonify({
-            "error": "The order could not be acknowledged."
-        }), 409
+        return jsonify({"error": "The order could not be acknowledged."}), 409
 
     # Retrieve the saved acknowledgement timestamp.
     updated_order = db.execute(
@@ -1127,17 +1140,17 @@ def acknowledge_staff_order(order_id):
         FROM orders
         WHERE id = ?
         """,
-        (order_id,)
+        (order_id,),
     ).fetchone()
 
-    return jsonify({
-        "success": True,
-        "already_acknowledged": False,
-        "order_id": order_id,
-        "staff_acknowledged_at": updated_order["staff_acknowledged_at"]
-    })
-
-
+    return jsonify(
+        {
+            "success": True,
+            "already_acknowledged": False,
+            "order_id": order_id,
+            "staff_acknowledged_at": updated_order["staff_acknowledged_at"],
+        }
+    )
 
 
 @app.route("/api/staff/handoffs/<int:request_id>", methods=["PATCH"])
@@ -1536,7 +1549,10 @@ def detect_intent(message, conversation, order):
         input=(
             "Available menu items and prices (use these exact item names):\n"
             + json.dumps(
-                {name: format_price(price) for name, price in restaurant["menu"].items()},
+                {
+                    name: format_price(price)
+                    for name, price in restaurant["menu"].items()
+                },
                 ensure_ascii=False,
             )
             + "\n\nConversation history:\n"
@@ -1734,7 +1750,9 @@ def execute_intent(intent_data, order, conversation_id=None, customer_message=No
 
             item_total = restaurant["menu"][item] * quantity
 
-            added_items.append(f"{quantity} x {item.title()} - {format_price(item_total)}")
+            added_items.append(
+                f"{quantity} x {item.title()} - {format_price(item_total)}"
+            )
 
         if not added_items:
             return "I couldn't find those items on our menu."
@@ -1874,7 +1892,10 @@ def execute_intent(intent_data, order, conversation_id=None, customer_message=No
 
             for menu_item, price in restaurant["menu"].items():
                 menu_terms = set(menu_item.lower().replace("-", " ").split())
-                if unclear_name.lower() in menu_item.lower() or search_terms.intersection(menu_terms):
+                if (
+                    unclear_name.lower() in menu_item.lower()
+                    or search_terms.intersection(menu_terms)
+                ):
                     matching_menu_items.append((menu_item, price))
 
             if matching_menu_items:
@@ -1898,13 +1919,11 @@ def execute_intent(intent_data, order, conversation_id=None, customer_message=No
 
         if order:
             current_items = "\n".join(
-                f"- {quantity} x {item.title()}"
-                for item, quantity in order.items()
+                f"- {quantity} x {item.title()}" for item, quantity in order.items()
             )
             return (
                 "Which item's quantity would you like to change? "
-                "Your current order contains:\n"
-                + current_items
+                "Your current order contains:\n" + current_items
             )
 
         return (
@@ -1970,84 +1989,5 @@ def execute_actions(
     return "\n\n".join(replies)
 
 
-# --------------------------------------------------
-# DEVELOPMENT TEST ENDPOINTS
-# --------------------------------------------------
-
-
-@app.route("/ai-test", methods=["GET", "POST"])
-def ai_test():
-    restaurant_info = f"""
-    Restaurant name: {restaurant['name']}
-    Opening hours: {restaurant['opening_hours']}
-    Address: {restaurant['address']}
-    Vegetarian options: {restaurant['vegetarian_options']}
-    Phone: {restaurant.get('phone') or 'Not provided'}
-    Delivery: {restaurant['delivery']}
-    Payment: {restaurant['payment']}
-    """
-
-    if request.method == "POST":
-        data = request.get_json(silent=True) or {}
-        question = data.get("question", "")
-
-        if not question:
-            return jsonify({"error": "Question is required."}), 400
-
-        response = client.responses.create(
-            model=OPENAI_MODEL,
-            instructions=(
-                "You are a helpful customer-service assistant for a restaurant. "
-                "Answer the customer's question using only the restaurant information provided. "
-                "If the information is not provided, say that you don't have that information."
-            ),
-            input=(restaurant_info + f"\nCustomer question: {question}"),
-        )
-
-        return jsonify({"answer": response.output_text})
-
-    return "AI test endpoint is working."
-
-
-@app.route("/ai-intent-test", methods=["POST"])
-def ai_intent_test():
-    data = request.get_json(silent=True) or {}
-    message = data.get("message", "")
-
-    if not message:
-        return jsonify({"error": "Message is required."}), 400
-
-    result = detect_intent(message, [], {})
-
-    return jsonify(result)
-
-
-@app.route("/ai-execute-test", methods=["POST"])
-def ai_execute_test():
-    data = request.get_json(silent=True) or {}
-    message = data.get("message", "").strip()
-
-    if not message:
-        return jsonify({"error": "Message is required."}), 400
-
-    if "order" not in session:
-        session["order"] = {}
-
-    order = session["order"]
-    conversation = session.get("conversation", [])
-
-    intent_data = detect_intent(message, conversation, order)
-
-    reply = execute_actions(intent_data["actions"], order)
-
-    conversation.append({"role": "user", "message": message})
-    conversation.append({"role": "assistant", "message": reply})
-
-    session["order"] = order
-    session["conversation"] = conversation
-
-    return jsonify({"intent": intent_data, "reply": reply})
-
-
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(host="127.0.0.1", port=5000, debug=False)

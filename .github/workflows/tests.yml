@@ -11,10 +11,8 @@ permissions:
   contents: read
 
 jobs:
-
   # JOB 1: Python and order workflow tests
   python-tests:
-
     name: Python Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -24,7 +22,6 @@ jobs:
       OPENAI_API_KEY: sk-test-not-a-real-key
 
     steps:
-
       - name: Check out repository
         uses: actions/checkout@v7
 
@@ -43,13 +40,11 @@ jobs:
       - name: Run Python and order workflow tests
         run: |
           python -m pytest -v \
-            pytest-practice \
+            restaurant_automated_tests/tests/test_business_ai.py \
             restaurant_automated_tests/tests/test_order_workflow.py
-
 
   # JOB 2: Playwright browser tests
   playwright-tests:
-
     name: Playwright Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -60,7 +55,6 @@ jobs:
       STAFF_USERNAME: playwright-staff
 
     steps:
-
       - name: Check out repository
         uses: actions/checkout@v7
 
